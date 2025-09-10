@@ -64,125 +64,152 @@
 </main>
 
 <script>
-/* ---------- mini food DB (USDA top 200) ---------- */
-const FOODS=[
+/* ---------- config ---------- */
+const CONFIG = { USDA_KEY: "PASTE_YOUR_USDA_KEY_HERE" };   // <<<<<<< your key
+
+/* ---------- mini fallback DB ---------- */
+const FOODS = [
 {id:1,name:"Egg, boiled",cal:155,pro:13,carb:1.1,fat:11},
 {id:2,name:"Bread, toast",cal:313,pro:13,carb:56,fat:4},
 {id:3,name:"Chicken breast, grilled",cal:165,pro:31,carb:0,fat:3.6},
 {id:4,name:"Rice, white, cooked",cal:130,pro:2.7,carb:28,fat:0.3},
 {id:5,name:"Apple",cal:52,pro:.3,carb:14,fat:.2},
-{id:6,name:"Banana",cal:89,pro:1.1,carb:23,fat,.3},
+{id:6,name:"Banana",cal:89,pro:1.1,carb:23,fat:.3},
 {id:7,name:"Milk, 2%",cal:50,pro:3.3,carb:5,fat:2},
-{id:8,name:"Potato, boiled",cal:87,pro:2,carb:20,fat,.1},
-{id:9,name:"Broccoli, boiled",cal:35,pro:2.4,carb:7,fat,.4},
-{id:10,name:"Salmon, baked",cal:206,pro:22,carb:0,fat,13}
-/* …you can expand the array or fetch USDA client-side if you add an API key */
+{id:8,name:"Potato, boiled",cal:87,pro:2,carb:20,fat:.1},
+{id:9,name:"Broccoli, boiled",cal:35,pro:2.4,carb:7,fat:.4},
+{id:10,name:"Salmon, baked",cal:206,pro:22,carb:0,fat:13}
 ];
 
 /* ---------- helpers ---------- */
-const $=s=>document.querySelector(s);
-const storage={
-  get(k){return JSON.parse(localStorage.getItem(k)||"null")},
-  set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+const $ = s => document.querySelector(s);
+const storage = {
+  get(k) { return JSON.parse(localStorage.getItem(k) || "null") },
+  set(k, v) { localStorage.setItem(k, JSON.stringify(v)) }
 };
-const todayStr=()=>new Date().toISOString().slice(0,10);
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 /* ---------- state ---------- */
-let meals=storage.get("meals")||[];
-let goals=storage.get("goals")||{cal:2000,pro:150,carb:250,fat:65};
+let meals = storage.get("meals") || [];
+let goals = storage.get("goals") || { cal: 2000, pro: 150, carb: 250, fat: 65 };
+
+/* ---------- USDA search ---------- */
+async function searchUSDA(q) {
+  if (!CONFIG.USDA_KEY) return [];                    // offline → use mini list
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?apiKey=${CONFIG.USDA_KEY}&query=${encodeURIComponent(q)}&pageSize=20`;
+  try {
+    const res = await fetch(url);      if (!res.ok) throw new Error("USDA error");
+    const data = await res.json();
+    return data.foods.map(f => ({
+      id:      f.fdcId,
+      name:    f.description,
+      cal:     f.foodNutrients.find(n => n.nutrientName === "Energy")?.value   || 0,
+      pro:     f.foodNutrients.find(n => n.nutrientName === "Protein")?.value   || 0,
+      carb:    f.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
+      fat:     f.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0,
+      unit:    "g"
+    }));
+  } catch (e) { console.warn("USDA fail", e); return []; }
+}
 
 /* ---------- goals ---------- */
-function loadGoals(){
-  $("#goalCal").value=goals.cal;
-  $("#goalPro").value=goals.pro;
-  $("#goalCarb").value=goals.carb;
-  $("#goalFat").value=goals.fat;
+function loadGoals() {
+  $("#goalCal").value = goals.cal;
+  $("#goalPro").value = goals.pro;
+  $("#goalCarb").value = goals.carb;
+  $("#goalFat").value = goals.fat;
 }
-$("#saveGoal").onclick=()=>{
-  goals={cal:+$("#goalCal").value,pro:+$("#goalPro").value,carb:+$("#goalCarb").value,fat:+$("#goalFat").value};
-  storage.set("goals",goals);
+$("#saveGoal").onclick = () => {
+  goals = { cal: +$("#goalCal").value, pro: +$("#goalPro").value, carb: +$("#goalCarb").value, fat: +$("#goalFat").value };
+  storage.set("goals", goals);
   renderDash();
 };
 loadGoals();
 
-/* ---------- food search ---------- */
-function renderFoodOpts(list){
-  const pick=$("#foodPick");
-  pick.innerHTML=list.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");
+/* ---------- food search  (USDA first, fallback local) ---------- */
+let currentFoods = FOODS;   // start with offline list
+async function updateFoodPick(q) {
+  const usda = await searchUSDA(q);
+  currentFoods = usda.length ? usda : FOODS.filter(f => f.name.toLowerCase().includes(q.toLowerCase()));
+  renderFoodOpts(currentFoods);
 }
-$("#searchFood").oninput=(e)=>{
-  const q=e.target.value.toLowerCase();
-  const filtered=q?FOODS.filter(f=>f.name.toLowerCase().includes(q)):FOODS;
-  renderFoodOpts(filtered);
-};
+function renderFoodOpts(list) {
+  const pick = $("#foodPick");
+  pick.innerHTML = list.map(f => `<option value="${f.id}">${f.name}</option>`).join("");
+}
+$("#searchFood").oninput = (e) => updateFoodPick(e.target.value);
 renderFoodOpts(FOODS);
 
 /* ---------- meals ---------- */
-$("#addMeal").onclick=()=>{
-  const id=+$("#foodPick").value;
-  const qty=+$("#qty").value;
-  const food=FOODS.find(f=>f.id===id);
-  if(!food||!qty)return;
-  const scale=qty/100;
-  const entry={...food,cal:food.cal*scale,pro:food.pro*scale,carb:food.carb*scale,fat:food.fat*scale,qty,date:todayStr(),id:Date.now()};
+$("#addMeal").onclick = async () => {
+  const id  = +$("#foodPick").value;
+  const qty = +$("#qty").value;
+  const food = currentFoods.find(f => f.id === id);
+  if (!food || !qty) return;
+  const scale = qty / 100;
+  const entry = { ...food, cal: food.cal * scale, pro: food.pro * scale, carb: food.carb * scale, fat: food.fat * scale, qty, date: todayStr(), id: Date.now() };
   meals.push(entry);
-  storage.set("meals",meals);
+  storage.set("meals", meals);
   renderMeals(); renderDash();
 };
-function delMeal(id){meals=meals.filter(m=>m.id!==id);storage.set("meals",meals);renderMeals();renderDash();}
-function renderMeals(){
-  const tbody=$("#mealTable tbody"); tbody.innerHTML="";
-  const tday=meals.filter(m=>m.date===todayStr());
-  let cal=0,pro=0,carb=0,fat=0;
-  tday.forEach(m=>{
-    cal+=m.cal; pro+=m.pro; carb+=m.carb; fat+=m.fat;
-    tbody.insertAdjacentHTML("beforeend",`<tr>
+function delMeal(id) {
+  meals = meals.filter(m => m.id !== id);
+  storage.set("meals", meals);
+  renderMeals(); renderDash();
+}
+function renderMeals() {
+  const tbody = $("#mealTable tbody");
+  tbody.innerHTML = "";
+  const tday = meals.filter(m => m.date === todayStr());
+  let cal = 0, pro = 0, carb = 0, fat = 0;
+  tday.forEach(m => {
+    cal += m.cal; pro += m.pro; carb += m.carb; fat += m.fat;
+    tbody.insertAdjacentHTML("beforeend", `<tr>
       <td>${m.name}</td><td>${m.qty} g</td><td>${m.cal.toFixed(0)}</td><td>${m.pro.toFixed(1)}</td><td>${m.carb.toFixed(1)}</td><td>${m.fat.toFixed(1)}</td>
       <td><button onclick="delMeal(${m.id})">✕</button></td>
     </tr>`);
   });
-  $("#tCal").textContent=cal.toFixed(0);
-  $("#tPro").textContent=pro.toFixed(1);
-  $("#tCarb").textContent=carb.toFixed(1);
-  $("#tFat").textContent=fat.toFixed(1);
+  $("#tCal").textContent = cal.toFixed(0);
+  $("#tPro").textContent = pro.toFixed(1);
+  $("#tCarb").textContent = carb.toFixed(1);
+  $("#tFat").textContent = fat.toFixed(1);
 }
-$("#todayDate").textContent=todayStr();
+$("#todayDate").textContent = todayStr();
 
 /* ---------- charts ---------- */
-const dayCtx=$("#dayChart").getContext("2d");
-const weekCtx=$("#weekChart").getContext("2d");
-let dayChart,weekChart;
-function renderDash(){
-  const today=meals.filter(m=>m.date===todayStr());
-  const tCal=today.reduce((s,m)=>s+m.cal,0);
-  const tPro=today.reduce((s,m)=>s+m.pro,0);
-  const tCarb=today.reduce((s,m)=>s+m.carb,0);
-  const tFat=today.reduce((s,m)=>s+m.fat,0);
-  const d={cal:tCal,pro:tPro,carb:tCarb,fat:tFat};
-  /* daily bar */
-  if(dayChart)dayChart.destroy();
-  dayChart=new Chart(dayCtx,{type:'bar',data:{
-    labels:['Calories','Protein','Carbs','Fat'],
-    datasets:[
-      {label:'Consumed',data:[d.cal,d.pro,d.carb,d.fat],backgroundColor:'#3b82f6'},
-      {label:'Goal',data:[goals.cal,goals.pro,goals.carb,goals.fat],backgroundColor:'#94a3b8'}
+const dayCtx = $("#dayChart").getContext("2d");
+const weekCtx = $("#weekChart").getContext("2d");
+let dayChart, weekChart;
+function renderDash() {
+  const today = meals.filter(m => m.date === todayStr());
+  const tCal = today.reduce((s, m) => s + m.cal, 0);
+  const tPro = today.reduce((s, m) => s + m.pro, 0);
+  const tCarb = today.reduce((s, m) => s + m.carb, 0);
+  const tFat = today.reduce((s, m) => s + m.fat, 0);
+  const d = { cal: tCal, pro: tPro, carb: tCarb, fat: tFat };
+  if (dayChart) dayChart.destroy();
+  dayChart = new Chart(dayCtx, { type: 'bar', data: {
+    labels: ['Calories', 'Protein', 'Carbs', 'Fat'],
+    datasets: [
+      { label: 'Consumed', data: [d.cal, d.pro, d.carb, d.fat], backgroundColor: '#3b82f6' },
+      { label: 'Goal', data: [goals.cal, goals.pro, goals.carb, goals.fat], backgroundColor: '#94a3b8' }
     ]
-  },options:{responsive:true,plugins:{legend:{display:false}}}});
-  /* weekly line */
-  const days=[...Array(7)].map((_,i)=>{const dt=new Date();dt.setDate(dt.getDate()-i);return dt.toISOString().slice(0,10);}).reverse();
-  const weekData=days.map(d=>meals.filter(m=>m.date===d).reduce((s,m)=>s+m.cal,0));
-  if(weekChart)weekChart.destroy();
-  weekChart=new Chart(weekCtx,{type:'line',data:{
-    labels:days,map(d=>d.slice(5)),
-    datasets:[{label:'Calories',data:weekData,borderColor:'#3b82f6',fill:false}]
-  },options:{responsive:true,plugins:{legend:{display:false}}}});
+  }, options: { responsive: true, plugins: { legend: { display: false } } } });
+  const days = [...Array(7)].map((_, i) => { const dt = new Date(); dt.setDate(dt.getDate() - i); return dt.toISOString().slice(0, 10); }).reverse();
+  const weekData = days.map(d => meals.filter(m => m.date === d).reduce((s, m) => s + m.cal, 0));
+  if (weekChart) weekChart.destroy();
+  weekChart = new Chart(weekCtx, { type: 'line', data: {
+    labels: days.map(d => d.slice(5)),
+    datasets: [{ label: 'Calories', data: weekData, borderColor: '#3b82f6', fill: false }]
+  }, options: { responsive: true, plugins: { legend: { display: false } } } });
 }
 renderMeals(); renderDash();
 
-/* ---------- PWA install ---------- */
+/* ---------- PWA ---------- */
 let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("#installBtn").classList.remove("hidden");});
-$("#installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;deferredPrompt=null;$("#installBtn").classList.add("hidden");}};
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; $("#installBtn").classList.remove("hidden"); });
+$("#installBtn").onclick = async () => { if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; deferredPrompt = null; $("#installBtn").classList.add("hidden"); } };
 </script>
+
 </body>
 </html>
