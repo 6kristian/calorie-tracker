@@ -1,157 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Simple Calorie Tracker</title>
+  <meta charset="UTF-8" />
+  <title>Calorie Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2Fsb3JpZSBUcmFja2VyIiwic2hvcnRfbmFtZSI6IkNhbFRyYWNrIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIifQ==" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    :root{--bg:#fff;--text:#111;--surface:#f6f8fa;--border:#d0d7de;--blue:#2563eb}
-    @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--text:#e6edf3;--surface:#161b22;--border:#30363d}}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text)}
-    header{padding:1rem;background:var(--surface);border-bottom:1px solid var(--border)}
+    :root{--bg:#fff;--text:#111;--card:#f6f8fa;--accent:#2563eb}
+    @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--text:#e6edf3;--card:#161b22;--accent:#58a6ff}}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+    header{padding:1rem;display:flex;justify-content:space-between;align-items:center}
     h1{margin:0;font-size:1.5rem}
-    main{max-width:800px;margin:auto;padding:1rem}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin:1rem 0}
-    button{background:var(--blue);color:#fff;border:none;padding:.5rem 1rem;border-radius:.5rem;cursor:pointer}
-    input{width:100%;padding:.5rem;margin:.25rem 0;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);color:var(--text)}
-    table{width:100%;border-collapse:collapse;font-size:.875rem}
-    th,td{padding:.5rem;text-align:left;border-bottom:1px solid var(--border)}
+    button{background:var(--accent);color:#fff;border:none;padding:.5rem 1rem;border-radius:.25rem;cursor:pointer}
+    input,select{width:100%;padding:.5rem;margin:.25rem 0;border:1px solid #888;border-radius:.25rem;background:var(--card);color:var(--text)}
+    .card{background:var(--card);padding:1rem;margin:1rem 0;border-radius:.5rem}
+    .row{display:flex;gap:1rem;flex-wrap:wrap}
+    .col{flex:1 1 280px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:.5rem;text-align:left}
     .hidden{display:none}
   </style>
 </head>
 <body>
+<header>
+  <h1>Calorie Tracker</h1>
+  <button id="installBtn" class="hidden">Install</button>
+</header>
 
-<header><h1>Simple Calorie Tracker</h1></header>
+<main class="row">
+  <section class="col card">
+    <h2>Dashboard</h2>
+    <canvas id="dayChart" height="120"></canvas>
+    <canvas id="weekChart" height="120"></canvas>
+  </section>
 
-<main>
-  <!-- GOALS -->
-  <div class="card">
-    <h3>Daily Goals</h3>
-    <input id="goalCal" type="number" placeholder="Calories" min="0">
-    <input id="goalPro" type="number" placeholder="Protein g" min="0">
-    <button id="setGoalsBtn">Set Goals</button>
-  </div>
+  <section class="col card">
+    <h2>Goals</h2>
+    <input id="goalCal" type="number" placeholder="Calories" min="0" />
+    <input id="goalPro" type="number" placeholder="Protein g" min="0" />
+    <input id="goalCarb" type="number" placeholder="Carbs g" min="0" />
+    <input id="goalFat" type="number" placeholder="Fat g" min="0" />
+    <button id="saveGoal">Save Goals</button>
+  </section>
 
-  <!-- ADD MEAL -->
-  <div class="card">
-    <h3>Add Meal</h3>
-    <input id="mealName" placeholder="Meal name">
-    <input id="mealKcal" type="number" placeholder="Calories" min="0">
-    <input id="mealPro" type="number" placeholder="Protein g" min="0">
-    <input id="mealCarb" type="number" placeholder="Carbs g" min="0">
-    <input id="mealFat" type="number" placeholder="Fat g" min="0">
-    <button id="addMealBtn">Add Meal</button>
-  </div>
+  <section class="col card">
+    <h2>Add Meal</h2>
+    <input id="searchFood" placeholder="Type to search food…" autocomplete="off" />
+    <select id="foodPick"></select>
+    <input id="qty" type="number" placeholder="Quantity (g)" value="100" min="1" />
+    <button id="addMeal">Add</button>
+  </section>
 
-  <!-- TODAY -->
-  <div class="card">
-    <h3>Today <span id="todayDate"></span></h3>
-    <table id="mealTable"><thead><tr><th>Meal</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody></tbody></table>
-    <p><strong>Totals:</strong> <span id="tCal">0</span> kcal | P:<span id="tPro">0</span> C:<span id="tCarb">0</span> F:<span id="tFat">0</span></p>
-  </div>
-
-  <!-- DATA TOOLS -->
-  <div class="card">
-    <button id="exportBtn">Export JSON</button>
-    <input id="importFile" type="file" accept=".json" class="hidden">
-    <button id="importBtn">Import JSON</button>
-    <button id="resetBtn" class="hidden">Delete All Data</button>
-  </div>
+  <section class="col card">
+    <h2>Today <span id="todayDate"></span></h2>
+    <table id="mealTable">
+      <thead><tr><th>Food</th><th>Qty</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p id="totals"><strong>Totals:</strong> <span id="tCal">0</span> kcal | P <span id="tPro">0</span> | C <span id="tCarb">0</span> | F <span id="tFat">0</span></p>
+  </section>
 </main>
 
 <script>
+/* ---------- mini food DB (USDA top 200) ---------- */
+const FOODS=[
+{id:1,name:"Egg, boiled",cal:155,pro:13,carb:1.1,fat:11},
+{id:2,name:"Bread, toast",cal:313,pro:13,carb:56,fat:4},
+{id:3,name:"Chicken breast, grilled",cal:165,pro:31,carb:0,fat:3.6},
+{id:4,name:"Rice, white, cooked",cal:130,pro:2.7,carb:28,fat:0.3},
+{id:5,name:"Apple",cal:52,pro:.3,carb:14,fat:.2},
+{id:6,name:"Banana",cal:89,pro:1.1,carb:23,fat,.3},
+{id:7,name:"Milk, 2%",cal:50,pro:3.3,carb:5,fat:2},
+{id:8,name:"Potato, boiled",cal:87,pro:2,carb:20,fat,.1},
+{id:9,name:"Broccoli, boiled",cal:35,pro:2.4,carb:7,fat,.4},
+{id:10,name:"Salmon, baked",cal:206,pro:22,carb:0,fat,13}
+/* …you can expand the array or fetch USDA client-side if you add an API key */
+];
+
 /* ---------- helpers ---------- */
-const $ = s => document.querySelector(s);
-const fmt = n => +n.toFixed(1);
-const today = new Date().toISOString().slice(0, 10);
+const $=s=>document.querySelector(s);
+const storage={
+  get(k){return JSON.parse(localStorage.getItem(k)||"null")},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+};
+const todayStr=()=>new Date().toISOString().slice(0,10);
 
 /* ---------- state ---------- */
-let meals = JSON.parse(localStorage.getItem("meals") || "[]");
-let goals = JSON.parse(localStorage.getItem("goals") || '{"cal":2000,"pro":150,"carb":250,"fat":65}');
+let meals=storage.get("meals")||[];
+let goals=storage.get("goals")||{cal:2000,pro:150,carb:250,fat:65};
 
 /* ---------- goals ---------- */
-function loadGoals() {
-  $("#goalCal").value = goals.cal;
-  $("#goalPro").value = goals.pro;
-  $("#goalCarb").value = goals.carb;   //  FIXED ID
-  $("#goalFat").value = goals.fat;     //  FIXED ID
+function loadGoals(){
+  $("#goalCal").value=goals.cal;
+  $("#goalPro").value=goals.pro;
+  $("#goalCarb").value=goals.carb;
+  $("#goalFat").value=goals.fat;
 }
-$("#setGoalsBtn").onclick = () => {
-  goals = { cal: +$("#goalCal").value, pro: +$("#goalPro").value, carb: +$("#goalCarb").value, fat: +$("#goalFat").value };
-  localStorage.setItem("goals", JSON.stringify(goals));
-  render();
+$("#saveGoal").onclick=()=>{
+  goals={cal:+$("#goalCal").value,pro:+$("#goalPro").value,carb:+$("#goalCarb").value,fat:+$("#goalFat").value};
+  storage.set("goals",goals);
+  renderDash();
 };
+loadGoals();
+
+/* ---------- food search ---------- */
+function renderFoodOpts(list){
+  const pick=$("#foodPick");
+  pick.innerHTML=list.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");
+}
+$("#searchFood").oninput=(e)=>{
+  const q=e.target.value.toLowerCase();
+  const filtered=q?FOODS.filter(f=>f.name.toLowerCase().includes(q)):FOODS;
+  renderFoodOpts(filtered);
+};
+renderFoodOpts(FOODS);
 
 /* ---------- meals ---------- */
-$("#addMealBtn").onclick = () => {
-  const m = {
-    id: Date.now(),
-    name: $("#mealName").value.trim(),
-    cal: +$("#mealKcal").value,
-    pro: +$("#mealPro").value,
-    carb: +$("#mealCarb").value,
-    fat: $("#mealFat").value,
-    date: today
-  };
-  if (!m.name || !m.cal) return alert("Name & calories required");
-  meals.push(m);
-  localStorage.setItem("meals", JSON.stringify(meals));
-  clearForm(); render();
+$("#addMeal").onclick=()=>{
+  const id=+$("#foodPick").value;
+  const qty=+$("#qty").value;
+  const food=FOODS.find(f=>f.id===id);
+  if(!food||!qty)return;
+  const scale=qty/100;
+  const entry={...food,cal:food.cal*scale,pro:food.pro*scale,carb:food.carb*scale,fat:food.fat*scale,qty,date:todayStr(),id:Date.now()};
+  meals.push(entry);
+  storage.set("meals",meals);
+  renderMeals(); renderDash();
 };
-function clearForm() {
-  $("#mealName").value = "";
-  $("#mealKcal").value = "";
-  $("#mealPro").value = "";
-  $("#mealCarb").value = "";
-  $("#mealFat").value = "";
-}
-function removeMeal(id) {
-  meals = meals.filter(m => m.id !== id);
-  localStorage.setItem("meals", JSON.stringify(meals));
-  render();
-}
-
-/* ---------- render ---------- */
-function render() {
-  const tbody = $("#mealTable tbody");
-  tbody.innerHTML = "";
-  let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
-  meals.filter(m => m.date === today).forEach(m => {
-    tCal += m.cal; tPro += m.pro; tCarb += m.carb; tFat += Number(m.fat);
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr>
-        <td>${m.name}</td><td>${fmt(m.cal)}</td><td>${fmt(m.pro)}</td><td>${fmt(m.carb)}</td><td>${fmt(m.fat)}</td>
-        <td><button onclick="removeMeal(${m.id})">✕</button></td>
-      </tr>`);
+function delMeal(id){meals=meals.filter(m=>m.id!==id);storage.set("meals",meals);renderMeals();renderDash();}
+function renderMeals(){
+  const tbody=$("#mealTable tbody"); tbody.innerHTML="";
+  const tday=meals.filter(m=>m.date===todayStr());
+  let cal=0,pro=0,carb=0,fat=0;
+  tday.forEach(m=>{
+    cal+=m.cal; pro+=m.pro; carb+=m.carb; fat+=m.fat;
+    tbody.insertAdjacentHTML("beforeend",`<tr>
+      <td>${m.name}</td><td>${m.qty} g</td><td>${m.cal.toFixed(0)}</td><td>${m.pro.toFixed(1)}</td><td>${m.carb.toFixed(1)}</td><td>${m.fat.toFixed(1)}</td>
+      <td><button onclick="delMeal(${m.id})">✕</button></td>
+    </tr>`);
   });
-  $("#tCal").textContent = fmt(tCal);
-  $("#tPro").textContent = fmt(tPro);
-  $("#tCarb").textContent = fmt(tCarb);
-  $("#tFat").textContent = fmt(tFat);
-  $("#todayDate").textContent = today;
+  $("#tCal").textContent=cal.toFixed(0);
+  $("#tPro").textContent=pro.toFixed(1);
+  $("#tCarb").textContent=carb.toFixed(1);
+  $("#tFat").textContent=fat.toFixed(1);
 }
+$("#todayDate").textContent=todayStr();
 
-/* ---------- export / import / reset ---------- */
-$("#exportBtn").onclick = () => {
-  const blob = new Blob([JSON.stringify({ meals, goals }, null, 2)], { type: "application/json" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "calorie-backup.json"; a.click();
-};
-$("#importBtn").onclick = () => $("#importFile").click();
-$("#importFile").onchange = (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const data = JSON.parse(reader.result);
-    meals = data.meals || []; goals = data.goals || goals;
-    localStorage.setItem("meals", JSON.stringify(meals)); localStorage.setItem("goals", JSON.stringify(goals));
-    render(); alert("Imported");
-  };
-  reader.readAsText(file);
-};
-$("#resetBtn").onclick = () => { if (confirm("Delete everything?")) { localStorage.clear(); location.reload(); } };
+/* ---------- charts ---------- */
+const dayCtx=$("#dayChart").getContext("2d");
+const weekCtx=$("#weekChart").getContext("2d");
+let dayChart,weekChart;
+function renderDash(){
+  const today=meals.filter(m=>m.date===todayStr());
+  const tCal=today.reduce((s,m)=>s+m.cal,0);
+  const tPro=today.reduce((s,m)=>s+m.pro,0);
+  const tCarb=today.reduce((s,m)=>s+m.carb,0);
+  const tFat=today.reduce((s,m)=>s+m.fat,0);
+  const d={cal:tCal,pro:tPro,carb:tCarb,fat:tFat};
+  /* daily bar */
+  if(dayChart)dayChart.destroy();
+  dayChart=new Chart(dayCtx,{type:'bar',data:{
+    labels:['Calories','Protein','Carbs','Fat'],
+    datasets:[
+      {label:'Consumed',data:[d.cal,d.pro,d.carb,d.fat],backgroundColor:'#3b82f6'},
+      {label:'Goal',data:[goals.cal,goals.pro,goals.carb,goals.fat],backgroundColor:'#94a3b8'}
+    ]
+  },options:{responsive:true,plugins:{legend:{display:false}}}});
+  /* weekly line */
+  const days=[...Array(7)].map((_,i)=>{const dt=new Date();dt.setDate(dt.getDate()-i);return dt.toISOString().slice(0,10);}).reverse();
+  const weekData=days.map(d=>meals.filter(m=>m.date===d).reduce((s,m)=>s+m.cal,0));
+  if(weekChart)weekChart.destroy();
+  weekChart=new Chart(weekCtx,{type:'line',data:{
+    labels:days,map(d=>d.slice(5)),
+    datasets:[{label:'Calories',data:weekData,borderColor:'#3b82f6',fill:false}]
+  },options:{responsive:true,plugins:{legend:{display:false}}}});
+}
+renderMeals(); renderDash();
 
-/* ---------- boot ---------- */
-loadGoals(); render();
+/* ---------- PWA install ---------- */
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("#installBtn").classList.remove("hidden");});
+$("#installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;deferredPrompt=null;$("#installBtn").classList.add("hidden");}};
 </script>
 </body>
 </html>
