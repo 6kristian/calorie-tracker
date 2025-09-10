@@ -2,623 +2,157 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>NutriTrack — Calorie & Macro Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Professional calorie, macro and weight tracker that works offline" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍎%3C/text%3E%3C/svg%3E" />
-  <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;NutriTrack&quot;,&quot;short_name&quot;:&quot;NutriTrack&quot;,&quot;start_url&quot;:&quot;/calorie-tracker/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;theme_color&quot;:&quot;#2563eb&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'&gt;&lt;path fill='%232563eb' d='M256 32L384 160l128 128-256 256L32 288 160 60 256 32z'/&gt;&lt;/svg&gt;&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}" />
-
-  <!-- CDNs -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
-
+  <title>Simple Calorie Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-  /* ---------- design tokens ---------- */
-  :root {
-    --font: "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    --radius: .75rem;
-    --shadow: 0 4px 12px rgba(0,0,0,.08);
-    --transition: .2s ease;
-    --red: #ef4444; --green: #22c55e; --blue: #2563eb; --orange: #f97316;
-  }
-  /* auto dark mode */
-  @media (prefers-color-scheme: dark){
-    :root {
-      --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3; --text2: #8b949e;
-      --shadow: 0 4px 12px rgba(0,0,0,.25);
-    }
-  }
-  @media (prefers-color-scheme: light){
-    :root {
-      --bg: #ffffff; --surface: #f6f8fa; --border: #d0d7de; --text: #24292f; --text2: #57606a;
-    }
-  }
-  /* reset */
-  *,*::before,*::after { box-sizing: border-box; }
-  body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-  h1,h2,h3 { margin: 0 0 .5rem; font-weight: 600; }
-  button,input,select,textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; border: none; }
-  input,select,textarea { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem .75rem; width: 100%; }
-  label { font-size: .875rem; font-weight: 500; margin-bottom: .25rem; display: block; }
-  .flex { display: flex; align-items: center; gap: .5rem; }
-  .grid { display: grid; gap: 1rem; }
-  .btn { background: var(--blue); color: #fff; padding: .5rem 1rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: var(--transition); }
-  .btn:hover { filter: brightness(1.1); }
-  .btn--ghost { background: transparent; color: var(--blue); box-shadow: none; }
-  .btn--danger { background: var(--red); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; box-shadow: var(--shadow); }
-  .ring { position: relative; width: 120px; height: 120px; margin: auto; }
-  .ring svg { transform: rotate(-90deg); }
-  .ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .hidden { display: none !important; }
-  /* layout */
-  header { padding: 1rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  main { max-width: 1200px; margin: auto; padding: 1rem; }
-  .tab-bar { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-  .tab-bar button { background: transparent; border: 1px solid var(--border); padding: .5rem 1rem; border-radius: var(--radius); }
-  .tab-bar button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-  section.tab { display: none; }
-  section.tab.active { display: block; }
-  /* table */
-  table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-  th { text-align: left; font-weight: 600; padding: .5rem; border-bottom: 1px solid var(--border); }
-  td { padding: .5rem; border-bottom: 1px solid var(--border); }
-  tr:last-child td { border: none; }
-  /* modal */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
-  .modal > .card { max-width: 600px; width: 100%; max-height: 90vh; overflow: auto; }
+    :root{--bg:#fff;--text:#111;--surface:#f6f8fa;--border:#d0d7de;--blue:#2563eb}
+    @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--text:#e6edf3;--surface:#161b22;--border:#30363d}}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text)}
+    header{padding:1rem;background:var(--surface);border-bottom:1px solid var(--border)}
+    h1{margin:0;font-size:1.5rem}
+    main{max-width:800px;margin:auto;padding:1rem}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin:1rem 0}
+    button{background:var(--blue);color:#fff;border:none;padding:.5rem 1rem;border-radius:.5rem;cursor:pointer}
+    input{width:100%;padding:.5rem;margin:.25rem 0;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);color:var(--text)}
+    table{width:100%;border-collapse:collapse;font-size:.875rem}
+    th,td{padding:.5rem;text-align:left;border-bottom:1px solid var(--border)}
+    .hidden{display:none}
   </style>
 </head>
 <body>
 
-<header>
-  <div class="flex">
-    <i class="ri-restaurant-line ri-2x"></i>
-    <h1>NutriTrack</h1>
-  </div>
-  <div class="flex">
-    <button id="exportBtn" class="btn--ghost" aria-label="Export data"><i class="ri-download-line"></i></button>
-    <button id="scanBtn" class="btn--ghost" aria-label="Scan barcode"><i class="ri-qr-code-line"></i></button>
-    <button id="installBtn" class="btn--ghost hidden"><i class="ri-install-line"></i> Install</button>
-  </div>
-</header>
+<header><h1>Simple Calorie Tracker</h1></header>
 
-<main><script>
-  window.$ = s => document.querySelector(s);
-  window.$$ = s => Array.from(document.querySelectorAll(s));
-</script>
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="dashboard"><i class="ri-dashboard-line"></i> Dashboard</button>
-    <button class="tab-btn" data-tab="diary"><i class="ri-book-2-line"></i> Diary</button>
-    <button class="tab-btn" data-tab="foods"><i class="ri-restaurant-line"></i> Foods</button>
-    <button class="tab-btn" data-tab="recipes"><i class="ri-cup-line"></i> Recipes</button>
-    <button class="tab-btn" data-tab="weight"><i class="ri-body-scan-line"></i> Weight</button>
-    <button class="tab-btn" data-tab="settings"><i class="ri-settings-3-line"></i> Settings</button>
+<main>
+  <!-- GOALS -->
+  <div class="card">
+    <h3>Daily Goals</h3>
+    <input id="goalCal" type="number" placeholder="Calories" min="0">
+    <input id="goalPro" type="number" placeholder="Protein g" min="0">
+    <button id="setGoalsBtn">Set Goals</button>
   </div>
 
-  <!-- ---------- dashboard ---------- -->
-  <section id="dashboard" class="tab active">
-    <div class="grid" style="grid-template-columns: repeat(auto-fit,minmax(250px,1fr))">
-      <div class="card">
-        <h3>Today</h3>
-        <div class="ring">
-          <svg width="120" height="120"><circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="12"></circle>
-            <circle id="ringCircle" cx="60" cy="60" r="54" fill="none" stroke="var(--blue)" stroke-width="12" stroke-linecap="round"></circle></svg>
-          <div class="ring-text"><span id="ringPercent">0</span><small>%</small></div>
-        </div>
-        <p class="flex" style="justify-content:space-between"><span>Calories</span><span id="dashCal">0 / 0</span></p>
-      </div>
-      <div class="card"><h3>Macros</h3><canvas id="macroChart" height="200"></canvas></div>
-      <div class="card"><h3>7-Day Calories</h3><canvas id="weekChart" height="120"></canvas></div>
-      <div class="card"><h3>Weight Trend</h3><canvas id="weightChart" height="120"></canvas></div>
-    </div>
-  </section>
+  <!-- ADD MEAL -->
+  <div class="card">
+    <h3>Add Meal</h3>
+    <input id="mealName" placeholder="Meal name">
+    <input id="mealKcal" type="number" placeholder="Calories" min="0">
+    <input id="mealPro" type="number" placeholder="Protein g" min="0">
+    <input id="mealCarb" type="number" placeholder="Carbs g" min="0">
+    <input id="mealFat" type="number" placeholder="Fat g" min="0">
+    <button id="addMealBtn">Add Meal</button>
+  </div>
 
-  <!-- ---------- diary ---------- -->
-  <section id="diary" class="tab">
-    <div class="card">
-      <div class="flex" style="justify-content:space-between; margin-bottom: .5rem">
-        <input id="diaryDate" type="date" value="">
-        <button id="addMealBtn" class="btn"><i class="ri-add-line"></i> Add Meal</button>
-      </div>
-      <table id="diaryTable">
-        <thead><tr><th>Meal</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <p class="flex" style="justify-content:space-between"><strong>Totals</strong><span id="diaryTotals">0 kcal | P:0 C:0 F:0</span></p>
-    </div>
-  </section>
+  <!-- TODAY -->
+  <div class="card">
+    <h3>Today <span id="todayDate"></span></h3>
+    <table id="mealTable"><thead><tr><th>Meal</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody></tbody></table>
+    <p><strong>Totals:</strong> <span id="tCal">0</span> kcal | P:<span id="tPro">0</span> C:<span id="tCarb">0</span> F:<span id="tFat">0</span></p>
+  </div>
 
-  <!-- ---------- foods ---------- -->
-  <section id="foods" class="tab">
-    <div class="card">
-      <input id="foodSearch" placeholder="Search foods…" autocomplete="off">
-      <button id="newFoodBtn" class="btn" style="margin-top: .5rem">+ New Food</button>
-      <table id="foodTable">
-        <thead><tr><th>Name</th><th>Cal/100g</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ---------- recipes ---------- -->
-  <section id="recipes" class="tab">
-    <div class="card">
-      <button id="newRecipeBtn" class="btn">+ New Recipe</button>
-      <div id="recipeList" class="grid" style="grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); margin-top: 1rem"></div>
-    </div>
-  </section>
-
-  <!-- ---------- weight ---------- -->
-  <section id="weight" class="tab">
-    <div class="card">
-      <div class="flex">
-        <input id="weightInput" type="number" step="0.1" placeholder="kg">
-        <input id="weightDate" type="date" value="">
-        <button id="addWeightBtn" class="btn">Add</button>
-      </div>
-      <table id="weightTable">
-        <thead><tr><th>Date</th><th>Weight</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ---------- settings ---------- -->
-  <section id="settings" class="tab">
-    <div class="card">
-      <h3>Goals</h3>
-      <div class="grid" style="grid-template-columns: 1fr 1fr">
-        <div><label>Calories</label><input id="setCal" type="number" min="0"></div>
-        <div><label>Protein g</label><input id="setPro" type="number" min="0"></div>
-        <div><label>Carbs g</label><input id="setCarb" type="number" min="0"></div>
-        <div><label>Fat g</label><input id="setFat" type="number" min="0"></div>
-      </div>
-      <button id="saveGoalsBtn" class="btn" style="margin-top: 1rem">Save</button>
-    </div>
-    <div class="card">
-      <h3>Data</h3>
-      <button id="importBtn" class="btn--ghost">Import JSON</button>
-      <input id="importFile" type="file" accept=".json" class="hidden">
-      <button id="resetBtn" class="btn--danger">Delete All Data</button>
-    </div>
-  </section>
+  <!-- DATA TOOLS -->
+  <div class="card">
+    <button id="exportBtn">Export JSON</button>
+    <input id="importFile" type="file" accept=".json" class="hidden">
+    <button id="importBtn">Import JSON</button>
+    <button id="resetBtn" class="hidden">Delete All Data</button>
+  </div>
 </main>
 
-<!-- ---------- modal ---------- -->
-<div id="modal" class="modal hidden">
-  <div class="card">
-    <div class="flex" style="justify-content:space-between">
-      <h3 id="modalTitle">Title</h3>
-      <button id="closeModal" class="btn--ghost"><i class="ri-close-line"></i></button>
-    </div>
-    <div id="modalBody"></div>
-  </div>
-</div>
-
 <script>
-/* ========================== CONFIG & I18N ========================== */
-const CONFIG={
-  OPENAI_KEY:"", // leave empty to disable AI parser
-  USDA_KEY:"",   // leave empty to use offline mini DB
-  UNIT_SYSTEM:"metric", // metric | imperial
-  WEEK_STARTS_ON_MONDAY:true
-};
-const STR={
-  addMeal:"Add Meal",
-  aiPlaceholder:"Type natural language, e.g. “2 scrambled eggs and toast”",
-  barcodeFail:"Barcode not found. Try manual search.",
-  confirmDelete:"Are you sure?"
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const fmt = n => +n.toFixed(1);
+const today = new Date().toISOString().slice(0, 10);
+
+/* ---------- state ---------- */
+let meals = JSON.parse(localStorage.getItem("meals") || "[]");
+let goals = JSON.parse(localStorage.getItem("goals") || '{"cal":2000,"pro":150,"carb":250,"fat":65}');
+
+/* ---------- goals ---------- */
+function loadGoals() {
+  $("#goalCal").value = goals.cal;
+  $("#goalPro").value = goals.pro;
+  $("#goalCarb").value = goals.carb;
+  $("#goalFat").value = goals.fat;
+}
+$("#setGoalsBtn").onclick = () => {
+  goals = { cal: +$("#goalCal").value, pro: +$("#goalPro").value, carb: +$("#goalCarb").value, fat: +$("#goalFat").value };
+  localStorage.setItem("goals", JSON.stringify(goals));
+  render();
 };
 
-/* ========================== MINI DB ========================== */
-const OFFLINE_FOODS=[
-{id:1,name:"Egg, boiled",kcal:155,pro:13,carb:1.1,fat:11,unit:"g"},
-{id:2,name:"Bread, toast",kcal:313,pro:13,carb:56,fat:4},
-{id:3,name:"Chicken breast, grilled",kcal:165,pro:31,carb:0,fat:3.6},
-{id:4,name:"Rice, white, cooked",kcal:130,pro:2.7,carb:28,fat:.3},
-{id:5,name:"Apple",kcal:52,pro:.3,carb:14,fat:.2},
-{id:6,name:"Banana",kcal:89,pro:1.1,carb:23,fat:.3},
-{id:7,name:"Milk, 2%",kcal:50,pro:3.3,carb:5,fat:2},
-{id:8,name:"Salmon, baked",kcal:206,pro:22,carb:0,fat:13},
-{id:9,name:"Broccoli, boiled",kcal:35,pro:2.4,carb:7,fat:.4},
-{id:10,name:"Potato, boiled",kcal:87,pro:2,carb:20,fat:.1}
-];
-
-/* ========================== STORAGE LAYER ========================== */
-const DB=(()=>{
-  const keys={meals:"nt_meals",foods:"nt_foods",recipes:"nt_recipes",weight:"nt_weight",goals:"nt_goals",settings:"nt_settings"};
-  const api={
-    load(k){try{return JSON.parse(localStorage.getItem(keys[k])||"null")}catch{return null}},
-    save(k,v){localStorage.setItem(keys[k],JSON.stringify(v));events.emit("change:"+k,v)},
-    clear(){Object.values(keys).forEach(k=>localStorage.removeItem(k)); location.reload()},
-    import(obj){Object.entries(obj).forEach(([k,v])=>k.startsWith("nt_")&&localStorage.setItem(k,JSON.stringify(v))); location.reload()}
+/* ---------- meals ---------- */
+$("#addMealBtn").onclick = () => {
+  const m = {
+    id: Date.now(),
+    name: $("#mealName").value.trim(),
+    cal: +$("#mealKcal").value,
+    pro: +$("#mealPro").value,
+    carb: +$("#mealCarb").value,
+    fat: +$("#mealFat").value,
+    date: today
   };
-  return api;
-})();
-
-/* ========================== EVENT BUS ========================== */
-const events=(()=>{const e={}; return {on:(n,l)=>(e[n]=e[n]||[]).push(l),emit:(n,...a)=>(e[n]||[]).forEach(f=>f(...a))}})();
-
-/* ========================== STATE ========================== */
-let state={
-  meals:DB.load("meals")||[],
-  foods:DB.load("foods")||OFFLINE_FOODS,
-  recipes:DB.load("recipes")||[],
-  weight:DB.load("weight")||[],
-  goals:DB.load("goals")||{kcal:2000,pro:150,carb:250,fat:65},
-  settings:DB.load("settings")||{unit:"metric",weekStartMon:true}
+  if (!m.name || !m.cal) return alert("Name & calories required");
+  meals.push(m);
+  localStorage.setItem("meals", JSON.stringify(meals));
+  clearForm(); render();
 };
-
-/* ========================== UTILS ========================== */
-const fmt={date:d=>d||new Date().toISOString().slice(0,10),number:n=>+n.toFixed(1)};
-const today=fmt.date();
-const sum=(arr,field)=>arr.reduce((a,b)=>a+(b[field]||0),0);
-const weekDays=()=>{const d=new Date(); const days=[]; for(let i=6;i>=0;i--){const t=new Date(d); t.setDate(d.getDate()-i); days.push(fmt.date(t));} return days;};
-
-/* ========================== CHARTS ========================== */
-let macroChart,weekChart,weightChart;
-const charts={
-  init(){
-    const mac=this.macro();
-    macroChart=new Chart($("#macroChart"),{type:"doughnut",data:{labels:["Protein","Carbs","Fat"],datasets:[{data:[mac.p,mac.c,mac.f],backgroundColor:["#3b82f6","#f97316","#22c55e"]}]},options:{cutout:"60%",plugins:{legend:{position:"bottom"}}}});
-    weekChart=new Chart($("#weekChart"),{type:"line",data:{labels:weekDays(),datasets:[{label:"Calories",data:this.weekKcal(),borderColor:"#3b82f6",fill:true,backgroundColor:"#3b82f620"}]},options:{scales:{y:{beginAtZero:true}}}});
-    weightChart=new Chart($("#weightChart"),{type:"line",data:{labels:this.weightDays(),datasets:[{label:"Weight kg",data:this.weightKg(),borderColor:"#22c55e",fill:false}]},options:{scales:{y:{beginAtZero:false}}}});
-  },
-  macro(){
-    const tday=state.meals.filter(m=>m.date===today);
-    return {p:sum(tday,"pro"),c:sum(tday,"carb"),f:sum(tday,"fat")};
-  },
-  weekKcal(){
-    const days=weekDays();
-    return days.map(d=>fmt.number(sum(state.meals.filter(m=>m.date===d),"kcal")));
-  },
-  weightDays(){return state.weight.map(w=>w.date)},
-  weightKg(){return state.weight.map(w=>w.kg)},
-  refresh(){
-    const mac=this.macro();
-    macroChart.data.datasets[0].data=[mac.p,mac.c,mac.f];
-    macroChart.update();
-    weekChart.data.datasets[0].data=this.weekKcal();
-    weekChart.update();
-    weightChart.data.labels=this.weightDays();
-    weightChart.data.datasets[0].data=this.weightKg();
-    weightChart.update();
-    dashboard.ring();
-  }
-};
-
-/* ========================== DASHBOARD ========================== */
-const dashboard={
-  ring(){
-    const consumed=sum(state.meals.filter(m=>m.date===today),"kcal");
-    const goal=state.goals.kcal;
-    const percent=Math.round((consumed/goal)*100);
-    const c=document.getElementById("ringCircle");
-    const r=54; const circ=2*Math.PI*r;
-    c.style.strokeDasharray=`${circ} ${circ}`;
-    c.style.strokeDashoffset=circ-(percent/100)*circ;
-    $("#ringPercent").textContent=percent;
-    $("#dashCal").textContent=`${fmt.number(consumed)} / ${goal}`;
-  }
-};
-
-/* ========================== TABS ========================== */
-const tabs={
-  init(){
-    $(".tab-btn").forEach(btn=>btn.onclick=()=>this.show(btn.dataset.tab));
-    this.show("dashboard");
-  },
-  show(id){
-    $(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
-    $(".tab").forEach(s=>s.classList.toggle("active",s.id===id));
-  }
-};
-
-/* ========================== MEALS ========================== */
-const meals={
-  init(){
-    $("#addMealBtn").onclick=()=>modal.show("Add Meal",this.form());
-    $("#diaryDate").value=today;
-    $("#diaryDate").onchange=()=>this.render();
-    this.render();
-    events.on("change:meals",()=>this.render());
-  },
-  render(){
-    const date=$("#diaryDate").value;
-    const list=state.meals.filter(m=>m.date===date);
-    const tbody=$("#diaryTable tbody"); tbody.innerHTML="";
-    let k=0,p=0,c=0,f=0;
-    list.forEach(m=>{
-      k+=m.kcal; p+=m.pro; c+=m.carb; f+=m.fat;
-      tbody.insertAdjacentHTML("beforeend",`<tr>
-        <td>${m.name}</td><td>${fmt.number(m.kcal)}</td><td>${fmt.number(m.pro)}</td><td>${fmt.number(m.carb)}</td><td>${fmt.number(m.fat)}</td>
-        <td><button class='btn--ghost' onclick='meals.remove(${m.id})'><i class='ri-delete-bin-line'></i></button></td>
-      </tr>`);
-    });
-    $("#diaryTotals").textContent=`${fmt.number(k)} kcal | P:${fmt.number(p)} C:${fmt.number(c)} F:${fmt.number(f)}`;
-    charts.refresh();
-  },
-  form(meal={}){
-    return `
-      <div class="grid">
-        <input id="mealName" placeholder="Food name" value="${meal.name||''}">
-        <textarea id="mealAI" placeholder="${STR.aiPlaceholder}" rows="2"></textarea>
-        <div class="grid" style="grid-template-columns:1fr 1fr">
-          <input id="mealKcal" type="number" min="0" placeholder="kcal" value="${meal.kcal||''}">
-          <input id="mealQty" type="number" min="0" placeholder="grams" value="${meal.qty||100}">
-        </div>
-        <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-          <input id="mealPro" type="number" min="0" placeholder="protein g" value="${meal.pro||''}">
-          <input id="mealCarb" type="number" min="0" placeholder="carbs g" value="${meal.carb||''}">
-          <input id="mealFat" type="number" min="0" placeholder="fat g" value="${meal.fat||''}">
-        </div>
-        <div class="flex">
-          <button class="btn" onclick="meals.save()">Save</button>
-          <button class="btn--ghost" onclick="modal.hide()">Cancel</button>
-        </div>
-      </div>`;
-  },
-  save(){
-    const ai=$("#mealAI").value.trim();
-    if(ai) return this.parseAI(ai);
-    const m={
-      id:Date.now(),
-      name:$("#mealName").value.trim(),
-      kcal:+$("#mealKcal").value,
-      pro:+$("#mealPro").value,
-      carb:+$("#mealCarb").value,
-      fat:+$("#mealFat").value,
-      qty:+$("#mealQty").value,
-      date:$("#diaryDate").value
-    };
-    if(!m.name||!m.kcal) return toast("Please fill at least name & calories");
-    state.meals.push(m); DB.save("meals",state.meals);
-    modal.hide(); toast("Meal added");
-  },
-  parseAI(text){
-    if(!CONFIG.OPENAI_KEY) return toast("AI parser disabled (no key)");
-    toast("Thinking…");
-    fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json",Authorization:`Bearer ${CONFIG.OPENAI_KEY}`},
-      body:JSON.stringify({
-        model:"gpt-3.5-turbo",
-        messages:[{role:"user",content:`Extract macros for: ${text}`}],
-        functions:[{name:"add_meal",description:"Add meal",parameters:{type:"object",properties:{name:{type:"string"},kcal:{type:"number"},pro:{type:"number"},carb:{type:"number"},fat:{type:"number"},qty:{type:"number"},unit:{type:"string"}}}}],
-        function_call:{name:"add_meal"}
-      })
-    }).then(r=>r.json()).then(j=>{
-      const args=j.choices[0].message.function_call.arguments;
-      const m=JSON.parse(args);
-      m.date=$("#diaryDate").value; m.id=Date.now();
-      state.meals.push(m); DB.save("meals",state.meals);
-      modal.hide(); toast("Meal added via AI");
-    }).catch(()=>toast("AI failed, please enter manually"));
-  },
-  remove(id){if(confirm(STR.confirmDelete)){state.meals=state.meals.filter(m=>m.id!==id); DB.save("meals",state.meals);}}
-};
-
-/* ========================== FOODS ========================== */
-const foods={
-  init(){
-    $("#newFoodBtn").onclick=()=>modal.show("New Food",this.form());
-    $("#foodSearch").oninput=(e)=>this.search(e.target.value);
-    this.render();
-    events.on("change:foods",()=>this.render());
-  },
-  render(){
-    const tbody=$("#foodTable tbody"); tbody.innerHTML="";
-    state.foods.forEach(f=>{
-      tbody.insertAdjacentHTML("beforeend",`<tr>
-        <td>${f.name}</td><td>${f.kcal}</td><td>${f.pro}</td><td>${f.carb}</td><td>${f.fat}</td>
-        <td><button class='btn--ghost' onclick='foods.remove(${f.id})'><i class='ri-delete-bin-line'></i></button></td>
-      </tr>`);
-    });
-  },
-  search(q){
-    if(!q) return this.render();
-    const fuse=new Fuse(state.foods,{keys:["name"]});
-    const res=fuse.search(q).map(r=>r.item);
-    const tbody=$("#foodTable tbody"); tbody.innerHTML="";
-    res.forEach(f=>{
-      tbody.insertAdjacentHTML("beforeend",`<tr>
-        <td>${f.name}</td><td>${f.kcal}</td><td>${f.pro}</td><td>${f.carb}</td><td>${f.fat}</td>
-        <td><button class='btn--ghost' onclick='foods.remove(${f.id})'><i class='ri-delete-bin-line'></i></button></td>
-      </tr>`);
-    });
-  },
-  form(f={}){return `
-    <div class="grid">
-      <input id="foodName" placeholder="Name" value="${f.name||''}">
-      <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
-        <input id="foodKcal" type="number" min="0" placeholder="kcal/100g" value="${f.kcal||''}">
-        <input id="foodPro" type="number" min="0" placeholder="protein" value="${f.pro||''}">
-        <input id="foodCarb" type="number" min="0" placeholder="carbs" value="${f.carb||''}">
-        <input id="foodFat" type="number" min="0" placeholder="fat" value="${f.fat||''}">
-      </div>
-      <div class="flex">
-        <button class="btn" onclick="foods.save()">Save</button>
-        <button class="btn--ghost" onclick="modal.hide()">Cancel</button>
-      </div>
-    </div>`;
-  },
-  save(){
-    const f={id:Date.now(),name:$("#foodName").value,kcal:+$("#foodKcal").value,pro:+$("#foodPro").value,carb:+$("#foodCarb").value,fat:+$("#foodFat").value};
-    if(!f.name) return toast("Name required");
-    state.foods.push(f); DB.save("foods",state.foods);
-    modal.hide(); toast("Food saved");
-  },
-  remove(id){if(confirm(STR.confirmDelete)){state.foods=state.foods.filter(f=>f.id!==id); DB.save("foods",state.foods);}}
-};
-
-/* ========================== RECIPES ========================== */
-const recipes={
-  init(){
-    $("#newRecipeBtn").onclick=()=>modal.show("New Recipe",this.form());
-    this.render();
-    events.on("change:recipes",()=>this.render());
-  },
-  render(){
-    const list=$("#recipeList"); list.innerHTML="";
-    state.recipes.forEach(r=>{
-      list.insertAdjacentHTML("beforeend",`<div class="card">
-        <h4>${r.name}</h4>
-        <p>${r.kcal} kcal / serving</p>
-        <div class="flex"><button class="btn--ghost" onclick="recipes.addToDiary(${r.id})">Add</button>
-        <button class="btn--ghost" onclick="recipes.remove(${r.id})"><i class='ri-delete-bin-line'></i></button></div>
-      </div>`);
-    });
-  },
-  form(r={}){return `
-    <div class="grid">
-      <input id="recipeName" placeholder="Recipe name" value="${r.name||''}">
-      <textarea id="recipeItems" placeholder="Food ids comma-separated" rows="2">${r.items||''}</textarea>
-      <input id="recipeServings" type="number" min="1" placeholder="Servings" value="${r.servings||1}">
-      <div class="flex">
-        <button class="btn" onclick="recipes.save()">Save</button>
-        <button class="btn--ghost" onclick="modal.hide()">Cancel</button>
-      </div>
-    </div>`;
-  },
-  save(){
-    const ids=$("#recipeItems").value.split(",").map(n=>+n.trim());
-    const items=state.foods.filter(f=>ids.includes(f.id));
-    const totalKcal=items.reduce((a,b)=>a+b.kcal,0);
-    const totalPro=items.reduce((a,b)=>a+b.pro,0);
-    const totalCarb=items.reduce((a,b)=>a+b.carb,0);
-    const totalFat=items.reduce((a,b)=>a+b.fat,0);
-    const r={id:Date.now(),name:$("#recipeName").value,items:ids,servings:+$("#recipeServings").value,kcal:totalKcal,pro:totalPro,carb:totalCarb,fat:totalFat};
-    state.recipes.push(r); DB.save("recipes",state.recipes);
-    modal.hide(); toast("Recipe saved");
-  },
-  addToDiary(id){
-    const r=state.recipes.find(x=>x.id===id);
-    const m={...r,name:r.name+" (recipe)",date:$("#diaryDate").value,id:Date.now()};
-    state.meals.push(m); DB.save("meals",state.meals);
-    toast("Recipe added to diary");
-  },
-  remove(id){if(confirm(STR.confirmDelete)){state.recipes=state.recipes.filter(r=>r.id!==id); DB.save("recipes",state.recipes);}}
-};
-
-/* ========================== WEIGHT ========================== */
-const weight={
-  init(){
-    $("#addWeightBtn").onclick=()=>this.add();
-    $("#weightDate").value=today;
-    this.render();
-    events.on("change:weight",()=>this.render());
-  },
-  add(){
-    const kg=+$("#weightInput").value;
-    const date=$("#weightDate").value;
-    if(!kg) return toast("Enter weight");
-    state.weight.push({id:Date.now(),kg,date});
-    state.weight.sort((a,b)=>a.date>b.date?1:-1);
-    DB.save("weight",state.weight);
-    $("#weightInput").value="";
-    charts.refresh();
-  },
-  render(){
-    const tbody=$("#weightTable tbody"); tbody.innerHTML="";
-    state.weight.slice().reverse().forEach(w=>{
-      tbody.insertAdjacentHTML("beforeend",`<tr>
-        <td>${w.date}</td><td>${w.kg} kg</td>
-        <td><button class='btn--ghost' onclick='weight.remove(${w.id})'><i class='ri-delete-bin-line'></i></button></td>
-      </tr>`);
-    });
-  },
-  remove(id){state.weight=state.weight.filter(w=>w.id!==id); DB.save("weight",state.weight);}
-};
-
-/* ========================== SETTINGS ========================== */
-const settings={
-  init(){
-    $("#saveGoalsBtn").onclick=()=>{
-      state.goals={kcal:+$("#setCal").value,pro:+$("#setPro").value,carb:+$("#setCarb").value,fat:+$("#setFat").value};
-      DB.save("goals",state.goals);
-      toast("Goals saved");
-      charts.refresh();
-    };
-    $("#exportBtn").onclick=()=>this.export();
-    $("#importBtn").onclick=()=>$("#importFile").click();
-    $("#importFile").onchange=(e)=>{const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=()=>DB.import(JSON.parse(r.result)); r.readAsText(file);};
-    $("#resetBtn").onclick=()=>{if(confirm("Delete everything?"))DB.clear();};
-    this.load();
-  },
-  load(){
-    $("#setCal").value=state.goals.kcal;
-    $("#setPro").value=state.goals.pro;
-    $("#setCarb").value=state.goals.carb;
-    $("#setFat").value=state.goals.fat;
-  },
-  export(){
-    const data={}; Object.values(localStorage).forEach((v,k)=>{
-      if(k.startsWith("nt_")) data[k]=JSON.parse(v);
-    });
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a"); a.href=url; a.download="nutritrack-backup.json"; a.click();
-  }
-};
-
-/* ========================== MODAL ========================== */
-const modal={
-  show(title,body){$("#modalTitle").textContent=title; $("#modalBody").innerHTML=body; $("#modal").classList.remove("hidden");},
-  hide(){$("#modal").classList.add("hidden");}
-};
-$("#closeModal").onclick=()=>modal.hide();
-
-/* ========================== BARCODE ========================== */
-const barcode={
-  init(){
-    $("#scanBtn").onclick=()=>this.scan();
-  },
-  async scan(){
-    if(!("BarcodeDetector" in window)) return toast("Barcode scanning not supported");
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    const video=document.createElement("video"); video.srcObject=stream; video.play();
-    modal.show("Scan barcode",video.outerHTML+"<p>Point camera at barcode</p>");
-    const detector=new BarcodeDetector({formats:["ean_13"]});
-    const int=setInterval(async()=>{
-      const codes=await detector.detect(video);
-      if(codes.length){clearInterval(int); stream.getTracks().forEach(t=>t.stop()); modal.hide(); this.lookup(codes[0].rawValue);}
-    },500);
-  },
-  lookup(code){
-    /* placeholder: query OpenFoodFacts or USDA */
-    toast(`Barcode ${code} not found in demo DB`);
-  }
-};
-
-/* ========================== TOAST ========================== */
-const toast=(msg)=>{
-  const t=document.createElement("div"); t.className="btn"; t.style.position="fixed"; t.style.bottom="1rem"; t.style.left="50%"; t.style.transform="translateX(-50%)"; t.textContent=msg;
-  document.body.appendChild(t); setTimeout(()=>t.remove(),2000);
-};
-
-/* ========================== INSTALL ========================== */
-let installPrompt=null;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); installPrompt=e; $("#installBtn").classList.remove("hidden");});
-$("#installBtn").onclick=async()=>{if(!installPrompt)return; installPrompt.prompt(); const{outcome}=await installPrompt.userChoice; installPrompt=null; $("#installBtn").classList.add("hidden");};
-
-/* ========================== SW ========================== */
-if("serviceWorker" in navigator){
-  const sw=`self.addEventListener("install",e=>e.skipWaiting()); self.addEventListener("activate",e=>e.waitUntil(clients.claim())); self.addEventListener("fetch",e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
-  const blob=new Blob([sw],{type:"application/javascript"});
-  const url=URL.createObjectURL(blob);
-  navigator.serviceWorker.register(url);
+function clearForm() {
+  $("#mealName").value = "";
+  $("#mealKcal").value = "";
+  $("#mealPro").value = "";
+  $("#mealCarb").value = "";
+  $("#mealFat").value = "";
+}
+function removeMeal(id) {
+  meals = meals.filter(m => m.id !== id);
+  localStorage.setItem("meals", JSON.stringify(meals));
+  render();
 }
 
-/* ========================== BOOTSTRAP ========================== */
-["meals","foods","recipes","weight","goals"].forEach(k=>events.on("change:"+k,()=>charts.refresh()));
-tabs.init(); meals.init(); foods.init(); recipes.init(); weight.init(); settings.init(); barcode.init(); charts.init(); dashboard.ring();
+/* ---------- render ---------- */
+function render() {
+  const tbody = $("#mealTable tbody");
+  tbody.innerHTML = "";
+  let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
+  meals.filter(m => m.date === today).forEach(m => {
+    tCal += m.cal; tPro += m.pro; tCarb += m.carb; tFat += m.fat;
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${m.name}</td><td>${fmt(m.cal)}</td><td>${fmt(m.pro)}</td><td>${fmt(m.carb)}</td><td>${fmt(m.fat)}</td>
+        <td><button onclick="removeMeal(${m.id})">✕</button></td>
+      </tr>`);
+  });
+  $("#tCal").textContent = fmt(tCal);
+  $("#tPro").textContent = fmt(tPro);
+  $("#tCarb").textContent = fmt(tCarb);
+  $("#tFat").textContent = fmt(tFat);
+  $("#todayDate").textContent = today;
+}
+
+/* ---------- export / import / reset ---------- */
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify({ meals, goals }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "calorie-backup.json"; a.click();
+};
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const data = JSON.parse(reader.result);
+    meals = data.meals || []; goals = data.goals || goals;
+    localStorage.setItem("meals", JSON.stringify(meals)); localStorage.setItem("goals", JSON.stringify(goals));
+    render(); alert("Imported");
+  };
+  reader.readAsText(file);
+};
+$("#resetBtn").onclick = () => { if (confirm("Delete everything?")) { localStorage.clear(); location.reload(); } };
+
+/* ---------- boot ---------- */
+loadGoals(); render();
 </script>
 </body>
-
 </html>
-
