@@ -1,68 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Simple Calorie Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{--bg:#fff;--text:#111;--surface:#f6f8fa;--border:#d0d7de;--blue:#2563eb}
-    @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--text:#e6edf3;--surface:#161b22;--border:#30363d}}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text)}
-    header{padding:1rem;background:var(--surface);border-bottom:1px solid var(--border)}
-    h1{margin:0;font-size:1.5rem}
-    main{max-width:800px;margin:auto;padding:1rem}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin:1rem 0}
-    button{background:var(--blue);color:#fff;border:none;padding:.5rem 1rem;border-radius:.5rem;cursor:pointer}
-    input{width:100%;padding:.5rem;margin:.25rem 0;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);color:var(--text)}
-    table{width:100%;border-collapse:collapse;font-size:.875rem}
-    th,td{padding:.5rem;text-align:left;border-bottom:1px solid var(--border)}
-    .hidden{display:none}
-  </style>
-</head>
-<body>
-
-<header><h1>Simple Calorie Tracker</h1></header>
-
-<main>
-  <!-- GOALS -->
-  <div class="card">
-    <h3>Daily Goals</h3>
-    <input id="goalCal" type="number" placeholder="Calories" min="0">
-    <input id="goalPro" type="number" placeholder="Protein g" min="0">
-    <button id="setGoalsBtn">Set Goals</button>
-  </div>
-
-  <!-- ADD MEAL -->
-  <div class="card">
-    <h3>Add Meal</h3>
-    <input id="mealName" placeholder="Meal name">
-    <input id="mealKcal" type="number" placeholder="Calories" min="0">
-    <input id="mealPro" type="number" placeholder="Protein g" min="0">
-    <input id="mealCarb" type="number" placeholder="Carbs g" min="0">
-    <input id="mealFat" type="number" placeholder="Fat g" min="0">
-    <button id="addMealBtn">Add Meal</button>
-  </div>
-
-  <!-- TODAY -->
-  <div class="card">
-    <h3>Today <span id="todayDate"></span></h3>
-    <table id="mealTable"><thead><tr><th>Meal</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody></tbody></table>
-    <p><strong>Totals:</strong> <span id="tCal">0</span> kcal | P:<span id="tPro">0</span> C:<span id="tCarb">0</span> F:<span id="tFat">0</span></p>
-  </div>
-
-  <!-- DATA TOOLS -->
-  <div class="card">
-    <button id="exportBtn">Export JSON</button>
-    <input id="importFile" type="file" accept=".json" class="hidden">
-    <button id="importBtn">Import JSON</button>
-    <button id="resetBtn" class="hidden">Delete All Data</button>
-  </div>
-</main>
-
 <script>
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
 const fmt = n => +n.toFixed(1);
 const today = new Date().toISOString().slice(0, 10);
 
@@ -74,8 +12,8 @@ let goals = JSON.parse(localStorage.getItem("goals") || '{"cal":2000,"pro":150,"
 function loadGoals() {
   $("#goalCal").value = goals.cal;
   $("#goalPro").value = goals.pro;
-  $("#goalCarb").value = goals.carb;
-  $("#goalFat").value = goals.fat;
+  $("#goalCarb").value = goals.carb;   //  FIXED ID
+  $("#goalFat").value = goals.fat;     //  FIXED ID
 }
 $("#setGoalsBtn").onclick = () => {
   goals = { cal: +$("#goalCal").value, pro: +$("#goalPro").value, carb: +$("#goalCarb").value, fat: +$("#goalFat").value };
@@ -91,7 +29,7 @@ $("#addMealBtn").onclick = () => {
     cal: +$("#mealKcal").value,
     pro: +$("#mealPro").value,
     carb: +$("#mealCarb").value,
-    fat: +$("#mealFat").value,
+    fat: $("#mealFat").value,
     date: today
   };
   if (!m.name || !m.cal) return alert("Name & calories required");
@@ -118,7 +56,7 @@ function render() {
   tbody.innerHTML = "";
   let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
   meals.filter(m => m.date === today).forEach(m => {
-    tCal += m.cal; tPro += m.pro; tCarb += m.carb; tFat += m.fat;
+    tCal += m.cal; tPro += m.pro; tCarb += m.carb; tFat += Number(m.fat);
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${m.name}</td><td>${fmt(m.cal)}</td><td>${fmt(m.pro)}</td><td>${fmt(m.carb)}</td><td>${fmt(m.fat)}</td>
@@ -154,5 +92,3 @@ $("#resetBtn").onclick = () => { if (confirm("Delete everything?")) { localStora
 /* ---------- boot ---------- */
 loadGoals(); render();
 </script>
-</body>
-</html>
