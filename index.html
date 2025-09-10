@@ -65,7 +65,7 @@
 
 <script>
 /* ---------- config ---------- */
-const CONFIG = { USDA_KEY: "PASTE_YOUR_USDA_KEY_HERE" };   // <<<<<<< your key
+const CONFIG = { USDA_KEY: "4GbOHeVhPU9cjCgrTwFx1jPP8F4EwbFVquQLC7Cy" };   // <<<<<<< your key
 
 /* ---------- mini fallback DB ---------- */
 const FOODS = [
@@ -96,7 +96,7 @@ let goals = storage.get("goals") || { cal: 2000, pro: 150, carb: 250, fat: 65 };
 /* ---------- USDA search ---------- */
 async function searchUSDA(q) {
   if (!CONFIG.USDA_KEY) return [];                    // offline → use mini list
-  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?apiKey=${CONFIG.USDA_KEY}&query=${encodeURIComponent(q)}&pageSize=20`;
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?apiKey=${CONFIG.USDA_KEY}&query=${encodeURIComponent(q)}&dataType=Foundation,SR%20Legacy&pageSize=20`;
   try {
     const res = await fetch(url);      if (!res.ok) throw new Error("USDA error");
     const data = await res.json();
@@ -213,3 +213,4 @@ $("#installBtn").onclick = async () => { if (deferredPrompt) { deferredPrompt.pr
 
 </body>
 </html>
+
