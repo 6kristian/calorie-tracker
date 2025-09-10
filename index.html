@@ -87,7 +87,10 @@
   </div>
 </header>
 
-<main>
+<main><script>
+  window.$ = s => document.querySelector(s);
+  window.$$ = s => Array.from(document.querySelectorAll(s));
+</script>
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="dashboard"><i class="ri-dashboard-line"></i> Dashboard</button>
     <button class="tab-btn" data-tab="diary"><i class="ri-book-2-line"></i> Diary</button>
@@ -616,4 +619,5 @@ if("serviceWorker" in navigator){
 tabs.init(); meals.init(); foods.init(); recipes.init(); weight.init(); settings.init(); barcode.init(); charts.init(); dashboard.ring();
 </script>
 </body>
+
 </html>
