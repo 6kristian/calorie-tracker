@@ -6,21 +6,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2Fsb3JpZSBUcmFja2VyIiwic2hvcnRfbmFtZSI6IkNhbFRyYWNrIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIifQ==" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
   <style>
     :root{--bg:#fff;--text:#111;--card:#f6f8fa;--accent:#2563eb}
     @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--text:#e6edf3;--card:#161b22;--accent:#58a6ff}}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
-    header{padding:1rem;display:flex;justify-content:space-between;align-items:center}
+    header{padding:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;}
     h1{margin:0;font-size:1.5rem}
     button{background:var(--accent);color:#fff;border:none;padding:.5rem 1rem;border-radius:.25rem;cursor:pointer}
     input,select{width:100%;padding:.5rem;margin:.25rem 0;border:1px solid #888;border-radius:.25rem;background:var(--card);color:var(--text)}
-    .card{background:var(--card);padding:1rem;margin:1rem 0;border-radius:.5rem}
+    .card{background:var(--card);padding:1rem;margin:1rem 0;border-radius:.5rem;box-sizing:border-box;}
     .row{display:flex;gap:1rem;flex-wrap:wrap}
-    .col{flex:1 1 280px}
-    table{width:100%;border-collapse:collapse}
+    .col{flex:1 1 280px;min-width:260px;box-sizing:border-box;}
+    table{width:100%;border-collapse:collapse;overflow-x:auto;display:block;}
     th,td{padding:.5rem;text-align:left}
     .hidden{display:none}
+    @media (max-width: 900px) {
+      .row { flex-direction: column; gap:0; }
+      .col { min-width:0; margin-bottom:1rem; }
+      header { flex-direction: column; align-items: flex-start; gap:.5rem; }
+    }
+    @media (max-width: 600px) {
+      body { font-size: 1rem; }
+      .card { padding:.75rem; margin:.5rem 0; }
+      h1 { font-size:1.2rem; }
+      h2 { font-size:1rem; }
+      table, thead, tbody, th, td, tr { font-size:.95rem; }
+      .row { gap:0; }
+      .col { padding:0; }
+      header { padding:.75rem; }
+    }
+    @media (max-width: 400px) {
+      .card { padding:.5rem; }
+      button, input, select { font-size:.95rem; }
+      th,td { padding:.3rem; }
+    }
   </style>
 </head>
 <body>
@@ -65,7 +85,7 @@
 
 <script>
 /* ---------- config ---------- */
-const CONFIG = { USDA_KEY: "4GbOHeVhPU9cjCgrTwFx1jPP8F4EwbFVquQLC7Cy" };   // <<<<<<< your key
+const CONFIG = { USDA_KEY: "Haax6z6qr1xjcVRAjPC7Y1jMGchRRCbXCoyPnTSZ" };   
 
 /* ---------- mini fallback DB ---------- */
 const FOODS = [
@@ -95,29 +115,38 @@ let goals = storage.get("goals") || { cal: 2000, pro: 150, carb: 250, fat: 65 };
 
 /* ---------- USDA search ---------- */
 async function searchUSDA(q) {
-  if (!CONFIG.USDA_KEY) return [];                    // offline → use mini list
+  if (!CONFIG.USDA_KEY) return [];
   const url = `https://api.nal.usda.gov/fdc/v1/foods/search?apiKey=${CONFIG.USDA_KEY}&query=${encodeURIComponent(q)}&dataType=Foundation,SR%20Legacy&pageSize=20`;
   try {
-    const res = await fetch(url);      if (!res.ok) throw new Error("USDA error");
+    console.log("USDA request:", url);                // ← remove after test
+    const res = await fetch(url);
+    console.log("USDA response status:", res.status); // ← remove after test
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("USDA body:", txt);               // ← shows real error
+      throw new Error("USDA error " + res.status);
+    }
     const data = await res.json();
     return data.foods.map(f => ({
-      id:      f.fdcId,
-      name:    f.description,
-      cal:     f.foodNutrients.find(n => n.nutrientName === "Energy")?.value   || 0,
-      pro:     f.foodNutrients.find(n => n.nutrientName === "Protein")?.value   || 0,
-      carb:    f.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
-      fat:     f.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0,
-      unit:    "g"
+      id: f.fdcId,
+      name: f.description,
+      cal: (f.foodNutrients.find(n => n.nutrientName === "Energy")?.value || 0),
+      pro: (f.foodNutrients.find(n => n.nutrientName === "Protein")?.value || 0),
+      carb: (f.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0),
+      fat: (f.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0),
+      unit: "g"
     }));
-  } catch (e) { console.warn("USDA fail", e); return []; }
+  } catch (e) {
+    console.warn("USDA fail", e);                     // keep this line
+    return [];
+  }
 }
-
 /* ---------- goals ---------- */
 function loadGoals() {
-  $("#goalCal").value = goals.cal;
-  $("#goalPro").value = goals.pro;
-  $("#goalCarb").value = goals.carb;
-  $("#goalFat").value = goals.fat;
+  if ($("#goalCal")) $("#goalCal").value = goals.cal;
+  if ($("#goalPro")) $("#goalPro").value = goals.pro;
+  if ($("#goalCarb")) $("#goalCarb").value = goals.carb;
+  if ($("#goalFat")) $("#goalFat").value = goals.fat;
 }
 $("#saveGoal").onclick = () => {
   goals = { cal: +$("#goalCal").value, pro: +$("#goalPro").value, carb: +$("#goalCarb").value, fat: +$("#goalFat").value };
@@ -135,24 +164,46 @@ async function updateFoodPick(q) {
 }
 function renderFoodOpts(list) {
   const pick = $("#foodPick");
-  pick.innerHTML = list.map(f => `<option value="${f.id}">${f.name}</option>`).join("");
+  if (!list || list.length === 0) {
+    pick.innerHTML = `<option disabled>No foods found</option>`;
+  } else {
+    pick.innerHTML = list.map(f => `<option value="${f.id}">${f.name}</option>`).join("");
+  }
 }
-$("#searchFood").oninput = (e) => updateFoodPick(e.target.value);
-renderFoodOpts(FOODS);
-
-/* ---------- meals ---------- */
-$("#addMeal").onclick = async () => {
-  const id  = +$("#foodPick").value;
-  const qty = +$("#qty").value;
-  const food = currentFoods.find(f => f.id === id);
-  if (!food || !qty) return;
-  const scale = qty / 100;
-  const entry = { ...food, cal: food.cal * scale, pro: food.pro * scale, carb: food.carb * scale, fat: food.fat * scale, qty, date: todayStr(), id: Date.now() };
-  meals.push(entry);
-  storage.set("meals", meals);
-  renderMeals(); renderDash();
+$("#searchFood").oninput = (e) => {
+  const val = e.target.value || "";
+  updateFoodPick(val);
 };
-function delMeal(id) {
+// Ensure food dropdown is populated on page load
+document.addEventListener("DOMContentLoaded", () => {
+  renderFoodOpts(FOODS);
+  $("#foodPick").selectedIndex = 0;
+  $("#addMeal").onclick = async () => {
+    const foodPick = $("#foodPick");
+    const qtyInput = $("#qty");
+    const qty = +qtyInput.value;
+    if (!foodPick.value || foodPick.selectedIndex === -1 || !qty || qty <= 0) return; // Prevent error if nothing is selected or qty invalid
+    const id  = +foodPick.value;
+    const food = currentFoods.find(f => f.id === id);
+    if (!food) return;
+    const scale = qty / 100;
+    // Ensure all nutrient values are numbers
+    const entry = { 
+      ...food, 
+      cal: Number(food.cal) * scale, 
+      pro: Number(food.pro) * scale, 
+      carb: Number(food.carb) * scale, 
+      fat: Number(food.fat) * scale, 
+      qty, 
+      date: todayStr(), 
+      id: Date.now() 
+    };
+    meals.push(entry);
+    storage.set("meals", meals);
+    renderMeals(); renderDash();
+  };
+});
+window.delMeal = function(id) {
   meals = meals.filter(m => m.id !== id);
   storage.set("meals", meals);
   renderMeals(); renderDash();
@@ -174,11 +225,13 @@ function renderMeals() {
   $("#tCarb").textContent = carb.toFixed(1);
   $("#tFat").textContent = fat.toFixed(1);
 }
-$("#todayDate").textContent = todayStr();
+if ($("#todayDate")) $("#todayDate").textContent = todayStr();
 
 /* ---------- charts ---------- */
-const dayCtx = $("#dayChart").getContext("2d");
-const weekCtx = $("#weekChart").getContext("2d");
+const dayCanvas = $("#dayChart");
+const weekCanvas = $("#weekChart");
+const dayCtx = dayCanvas ? dayCanvas.getContext("2d") : null;
+const weekCtx = weekCanvas ? weekCanvas.getContext("2d") : null;
 let dayChart, weekChart;
 function renderDash() {
   const today = meals.filter(m => m.date === todayStr());
@@ -187,21 +240,27 @@ function renderDash() {
   const tCarb = today.reduce((s, m) => s + m.carb, 0);
   const tFat = today.reduce((s, m) => s + m.fat, 0);
   const d = { cal: tCal, pro: tPro, carb: tCarb, fat: tFat };
-  if (dayChart) dayChart.destroy();
-  dayChart = new Chart(dayCtx, { type: 'bar', data: {
-    labels: ['Calories', 'Protein', 'Carbs', 'Fat'],
-    datasets: [
-      { label: 'Consumed', data: [d.cal, d.pro, d.carb, d.fat], backgroundColor: '#3b82f6' },
-      { label: 'Goal', data: [goals.cal, goals.pro, goals.carb, goals.fat], backgroundColor: '#94a3b8' }
-    ]
-  }, options: { responsive: true, plugins: { legend: { display: false } } } });
-  const days = [...Array(7)].map((_, i) => { const dt = new Date(); dt.setDate(dt.getDate() - i); return dt.toISOString().slice(0, 10); }).reverse();
-  const weekData = days.map(d => meals.filter(m => m.date === d).reduce((s, m) => s + m.cal, 0));
-  if (weekChart) weekChart.destroy();
-  weekChart = new Chart(weekCtx, { type: 'line', data: {
-    labels: days.map(d => d.slice(5)),
-    datasets: [{ label: 'Calories', data: weekData, borderColor: '#3b82f6', fill: false }]
-  }, options: { responsive: true, plugins: { legend: { display: false } } } });
+  if (typeof Chart !== "undefined") {
+    if (dayChart) dayChart.destroy();
+    if (dayCtx) {
+      dayChart = new Chart(dayCtx, { type: 'bar', data: {
+        labels: ['Calories', 'Protein', 'Carbs', 'Fat'],
+        datasets: [
+          { label: 'Consumed', data: [d.cal, d.pro, d.carb, d.fat], backgroundColor: '#3b82f6' },
+          { label: 'Goal', data: [goals.cal, goals.pro, goals.carb, goals.fat], backgroundColor: '#94a3b8' }
+        ]
+      }, options: { responsive: true, plugins: { legend: { display: false } } } });
+    }
+    const days = [...Array(7)].map((_, i) => { const dt = new Date(); dt.setDate(dt.getDate() - i); return dt.toISOString().slice(0, 10); }).reverse();
+    const weekData = days.map(d => meals.filter(m => m.date === d).reduce((s, m) => s + m.cal, 0));
+    if (weekChart) weekChart.destroy();
+    if (weekCtx) {
+      weekChart = new Chart(weekCtx, { type: 'line', data: {
+        labels: days.map(d => d.slice(5)),
+        datasets: [{ label: 'Calories', data: weekData, borderColor: '#3b82f6', fill: false }]
+      }, options: { responsive: true, plugins: { legend: { display: false } } } });
+    }
+  }
 }
 renderMeals(); renderDash();
 
@@ -213,4 +272,3 @@ $("#installBtn").onclick = async () => { if (deferredPrompt) { deferredPrompt.pr
 
 </body>
 </html>
-
